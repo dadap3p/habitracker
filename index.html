@@ -2,29 +2,554 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
 <title>Blue Shift Habit Tracker</title>
-<link rel="stylesheet" href="styles.css">
+
+<style>
+
+:root{
+    --blue:#071945;
+    --cyan:#00e5ff;
+    --white:#ffffff;
+    --pink:#ff3f87;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial, Helvetica, sans-serif;
+    background:
+    linear-gradient(
+        135deg,
+        #001060,
+        #000f35
+    );
+    color:white;
+    min-height:100vh;
+    overflow-x:hidden;
+}
+
+#particles{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+}
+
+.watermark{
+    position:fixed;
+    left:-100px;
+    top:-180px;
+
+    font-size:35rem;
+    font-weight:900;
+
+    color:white;
+    opacity:.05;
+
+    transform:rotate(-18deg);
+    pointer-events:none;
+}
+
+.container{
+    width:min(1200px,95%);
+    margin:auto;
+    padding:40px;
+    animation:reveal .8s ease;
+}
+
+.header{
+    margin-bottom:30px;
+}
+
+.header h1{
+    font-size:4rem;
+    font-weight:900;
+    letter-spacing:4px;
+}
+
+.header p{
+    color:var(--cyan);
+    font-size:1.2rem;
+}
+
+.controls{
+    margin-bottom:25px;
+}
+
+button{
+    border:none;
+    cursor:pointer;
+}
+
+.add-btn{
+    background:var(--cyan);
+    color:black;
+
+    font-weight:bold;
+
+    padding:14px 22px;
+
+    transform:skew(-12deg);
+
+    transition:.25s;
+}
+
+.add-btn:hover{
+    transform:
+    skew(-12deg)
+    translateX(5px);
+
+    box-shadow:
+    0 0 15px var(--cyan);
+}
+
+.habit-card{
+
+    background:
+    rgba(0,20,90,.65);
+
+    backdrop-filter:blur(12px);
+
+    border-left:6px solid var(--cyan);
+
+    margin-bottom:18px;
+
+    padding:20px;
+
+    transform:skew(-3deg);
+
+    transition:.25s;
+
+    position:relative;
+
+    overflow:hidden;
+}
+
+.habit-card:hover{
+    transform:
+    skew(-3deg)
+    translateX(10px);
+
+    box-shadow:
+    0 0 20px rgba(0,229,255,.25);
+}
+
+.habit-card::before{
+    content:"";
+
+    position:absolute;
+
+    top:0;
+    left:-100%;
+
+    width:100%;
+    height:100%;
+
+    background:
+    linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,.08),
+        transparent
+    );
+
+    transition:.8s;
+}
+
+.habit-card:hover::before{
+    left:100%;
+}
+
+.top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+}
+
+.name{
+    font-size:1.5rem;
+    font-weight:bold;
+}
+
+.remove{
+    background:transparent;
+    color:var(--pink);
+    font-size:1.3rem;
+}
+
+.days{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:15px;
+}
+
+.day{
+
+    width:24px;
+    height:24px;
+
+    background:#0d225e;
+
+    cursor:pointer;
+
+    transition:.2s;
+}
+
+.day:hover{
+    transform:scale(1.15);
+}
+
+.day.active{
+    background:var(--cyan);
+
+    box-shadow:
+    0 0 10px var(--cyan),
+    0 0 25px var(--cyan);
+
+    animation:pop .25s ease;
+}
+
+.progress{
+    height:10px;
+    background:#10204f;
+    overflow:hidden;
+}
+
+.fill{
+    height:100%;
+    background:
+    linear-gradient(
+        90deg,
+        var(--cyan),
+        white
+    );
+
+    transition:.5s cubic-bezier(.17,.89,.32,1.28);
+}
+
+.percent{
+    margin-top:8px;
+    color:var(--cyan);
+    font-size:.9rem;
+}
+
+@keyframes pop{
+    0%{
+        transform:scale(.5) rotate(-15deg);
+    }
+    70%{
+        transform:scale(1.2);
+    }
+    100%{
+        transform:scale(1);
+    }
+}
+
+@keyframes reveal{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:none;
+    }
+}
+
+@media(max-width:700px){
+
+.header h1{
+    font-size:2.5rem;
+}
+
+.day{
+    width:20px;
+    height:20px;
+}
+
+}
+
+</style>
 </head>
 <body>
 
-<div class="background-number">07</div>
+<canvas id="particles"></canvas>
 
-<div class="tracker">
+<div class="watermark">
+07
+</div>
 
-<header>
+<div class="container">
+
+<div class="header">
 <h1>HABIT TRACKER</h1>
-<span>JULY 2026</span>
-</header>
+<p>Daily Progress System</p>
+</div>
 
-<div class="habit-list" id="habitList"></div>
-
-<button id="addHabit">
+<div class="controls">
+<button class="add-btn" id="addHabit">
 + NEW HABIT
+</button>
+</div>
+
+<div id="habitList"></div>
+
+</div>
+
+<script>
+
+let habits =
+JSON.parse(
+localStorage.getItem("blueShiftHabits")
+) || [
+{
+name:"Exercise",
+days:Array(31).fill(false)
+},
+{
+name:"Read",
+days:Array(31).fill(false)
+}
+];
+
+const list =
+document.getElementById("habitList");
+
+function save(){
+localStorage.setItem(
+"blueShiftHabits",
+JSON.stringify(habits)
+);
+}
+
+function render(){
+
+list.innerHTML="";
+
+habits.forEach((habit,index)=>{
+
+const completed =
+habit.days.filter(Boolean).length;
+
+const percent =
+Math.round(
+(completed /
+habit.days.length)
+*100
+);
+
+const card =
+document.createElement("div");
+
+card.className="habit-card";
+
+card.innerHTML=`
+
+<div class="top-row">
+
+<div class="name">
+${habit.name}
+</div>
+
+<button class="remove">
+✕
 </button>
 
 </div>
 
-<script src="script.js"></script>
+<div class="days">
+
+${habit.days.map((day,dayIndex)=>`
+<div
+class="day ${day ? "active" : ""}"
+data-habit="${index}"
+data-day="${dayIndex}">
+</div>
+`).join("")}
+
+</div>
+
+<div class="progress">
+<div
+class="fill"
+style="width:${percent}%">
+</div>
+</div>
+
+<div class="percent">
+${completed}/${habit.days.length}
+days completed • ${percent}%
+</div>
+
+`;
+
+card
+.querySelector(".remove")
+.onclick=()=>{
+habits.splice(index,1);
+save();
+render();
+};
+
+list.appendChild(card);
+
+});
+
+document
+.querySelectorAll(".day")
+.forEach(square=>{
+
+square.onclick=()=>{
+
+const h =
+square.dataset.habit;
+
+const d =
+square.dataset.day;
+
+habits[h].days[d] =
+!habits[h].days[d];
+
+save();
+render();
+
+};
+
+});
+
+}
+
+render();
+
+document
+.getElementById("addHabit")
+.onclick=()=>{
+
+const name =
+prompt("Habit name:");
+
+if(!name) return;
+
+habits.push({
+name,
+days:Array(31).fill(false)
+});
+
+save();
+render();
+
+};
+
+const canvas =
+document.getElementById("particles");
+
+const ctx =
+canvas.getContext("2d");
+
+function resize(){
+
+canvas.width=
+window.innerWidth;
+
+canvas.height=
+window.innerHeight;
+
+}
+
+resize();
+
+window.addEventListener(
+"resize",
+resize
+);
+
+const particles=[];
+
+for(let i=0;i<35;i++){
+
+particles.push({
+
+x:Math.random()*window.innerWidth,
+y:Math.random()*window.innerHeight,
+
+size:Math.random()*10+5,
+
+speed:
+Math.random()*0.4+0.1,
+
+color:
+Math.random()>.5
+? "#00e5ff"
+: "#ff3f87"
+
+});
+
+}
+
+function animate(){
+
+ctx.clearRect(
+0,
+0,
+canvas.width,
+canvas.height
+);
+
+particles.forEach(p=>{
+
+ctx.fillStyle=p.color;
+
+ctx.beginPath();
+
+ctx.moveTo(
+p.x,
+p.y
+);
+
+ctx.lineTo(
+p.x+p.size,
+p.y+p.size/2
+);
+
+ctx.lineTo(
+p.x,
+p.y+p.size
+);
+
+ctx.closePath();
+
+ctx.fill();
+
+p.y-=p.speed;
+
+if(p.y<-20){
+
+p.y=
+canvas.height+20;
+
+p.x=
+Math.random()*canvas.width;
+
+}
+
+});
+
+requestAnimationFrame(
+animate
+);
+
+}
+
+animate();
+
+</script>
+
 </body>
 </html>
