@@ -9,6 +9,8 @@
 <style>
 
 :root{
+    --ui-scale:0.55;
+
     --blue:#071945;
     --cyan:#00e5ff;
     --white:#ffffff;
@@ -45,20 +47,30 @@ body{
     left:-100px;
     top:-180px;
 
-    font-size:35rem;
+    font-size:
+        calc(35rem * var(--ui-scale));
+
     font-weight:900;
 
     color:white;
     opacity:.05;
 
     transform:rotate(-18deg);
+
     pointer-events:none;
 }
 
 .container{
-    width:min(1200px,95%);
+    width:min(
+        calc(1200px * var(--ui-scale)),
+        95%
+    );
+
     margin:auto;
-    padding:40px;
+
+    padding:
+        calc(40px * var(--ui-scale));
+
     animation:reveal .8s ease;
 }
 
@@ -67,14 +79,18 @@ body{
 }
 
 .header h1{
-    font-size:4rem;
+    font-size:
+        calc(4rem * var(--ui-scale));
+
     font-weight:900;
     letter-spacing:4px;
 }
 
 .header p{
     color:var(--cyan);
-    font-size:1.2rem;
+
+    font-size:
+        calc(1.2rem * var(--ui-scale));
 }
 
 .controls{
@@ -117,9 +133,11 @@ button{
 
     border-left:6px solid var(--cyan);
 
-    margin-bottom:18px;
+    margin-bottom:
+        calc(18px * var(--ui-scale));
 
-    padding:20px;
+    padding:
+        calc(20px * var(--ui-scale));
 
     transform:skew(-3deg);
 
@@ -192,8 +210,11 @@ button{
 
 .day{
 
-    width:24px;
-    height:24px;
+    width:
+        calc(24px * var(--ui-scale));
+
+    height:
+        calc(24px * var(--ui-scale));
 
     background:#0d225e;
 
@@ -282,9 +303,7 @@ button{
 
 <canvas id="particles"></canvas>
 
-<div class="watermark">
-07
-</div>
+<div class="watermark"></div>
 
 <div class="container">
 
@@ -305,52 +324,141 @@ button{
 
 <script>
 
+// ===== DATE SYSTEM =====
+
+const currentDate = new Date();
+
+const currentYear =
+currentDate.getFullYear();
+
+const currentMonth =
+currentDate.getMonth();
+
+function getDaysInMonth(year, month){
+    return new Date(
+        year,
+        month + 1,
+        0
+    ).getDate();
+}
+
+const daysInMonth =
+getDaysInMonth(
+    currentYear,
+    currentMonth
+);
+
+const monthNames = [
+"January",
+"February",
+"March",
+"April",
+"May",
+"June",
+"July",
+"August",
+"September",
+"October",
+"November",
+"December"
+];
+
+// ===== WATERMARK =====
+
+document.querySelector(
+".watermark"
+).textContent =
+String(currentMonth + 1)
+.padStart(2,"0");
+
+// ===== HEADER =====
+
+document.querySelector(
+".header p"
+).textContent =
+`${monthNames[currentMonth]} ${currentYear}`;
+
+// ===== HABITS =====
+
 let habits =
 JSON.parse(
-localStorage.getItem("blueShiftHabits")
+localStorage.getItem(
+"blueShiftHabits"
+)
 ) || [
 {
 name:"Exercise",
-days:Array(31).fill(false)
+days:Array(daysInMonth).fill(false)
 },
 {
 name:"Read",
-days:Array(31).fill(false)
+days:Array(daysInMonth).fill(false)
 }
 ];
 
+// ===== RESIZE HABITS TO MATCH MONTH =====
+
+habits.forEach(habit=>{
+
+if(
+habit.days.length >
+daysInMonth
+){
+habit.days =
+habit.days.slice(
+0,
+daysInMonth
+);
+}
+
+while(
+habit.days.length <
+daysInMonth
+){
+habit.days.push(false);
+}
+
+});
+
 const list =
-document.getElementById("habitList");
+document.getElementById(
+"habitList"
+);
 
 function save(){
+
 localStorage.setItem(
 "blueShiftHabits",
 JSON.stringify(habits)
 );
+
 }
 
 function render(){
 
-list.innerHTML="";
+list.innerHTML = "";
 
-habits.forEach((habit,index)=>{
+habits.forEach(
+(habit,index)=>{
 
 const completed =
-habit.days.filter(Boolean).length;
+habit.days.filter(Boolean)
+.length;
 
 const percent =
 Math.round(
 (completed /
-habit.days.length)
+daysInMonth)
 *100
 );
 
 const card =
 document.createElement("div");
 
-card.className="habit-card";
+card.className =
+"habit-card";
 
-card.innerHTML=`
+card.innerHTML = `
 
 <div class="top-row">
 
@@ -366,13 +474,17 @@ ${habit.name}
 
 <div class="days">
 
-${habit.days.map((day,dayIndex)=>`
+${habit.days.map(
+(day,dayIndex)=>`
+
 <div
 class="day ${day ? "active" : ""}"
 data-habit="${index}"
 data-day="${dayIndex}">
 </div>
-`).join("")}
+
+`
+).join("")}
 
 </div>
 
@@ -384,7 +496,7 @@ style="width:${percent}%">
 </div>
 
 <div class="percent">
-${completed}/${habit.days.length}
+${completed}/${daysInMonth}
 days completed • ${percent}%
 </div>
 
@@ -392,10 +504,16 @@ days completed • ${percent}%
 
 card
 .querySelector(".remove")
-.onclick=()=>{
-habits.splice(index,1);
+.onclick = ()=>{
+
+habits.splice(
+index,
+1
+);
+
 save();
 render();
+
 };
 
 list.appendChild(card);
@@ -406,7 +524,7 @@ document
 .querySelectorAll(".day")
 .forEach(square=>{
 
-square.onclick=()=>{
+square.onclick = ()=>{
 
 const h =
 square.dataset.habit;
@@ -414,8 +532,10 @@ square.dataset.habit;
 const d =
 square.dataset.day;
 
-habits[h].days[d] =
-!habits[h].days[d];
+habits[h]
+.days[d] =
+!habits[h]
+.days[d];
 
 save();
 render();
@@ -428,18 +548,26 @@ render();
 
 render();
 
+// ===== ADD HABIT =====
+
 document
-.getElementById("addHabit")
-.onclick=()=>{
+.getElementById(
+"addHabit"
+)
+.onclick = ()=>{
 
 const name =
-prompt("Habit name:");
+prompt(
+"Habit name:"
+);
 
 if(!name) return;
 
 habits.push({
 name,
-days:Array(31).fill(false)
+days:Array(
+daysInMonth
+).fill(false)
 });
 
 save();
@@ -447,18 +575,22 @@ render();
 
 };
 
+// ===== PARTICLES =====
+
 const canvas =
-document.getElementById("particles");
+document.getElementById(
+"particles"
+);
 
 const ctx =
 canvas.getContext("2d");
 
 function resize(){
 
-canvas.width=
+canvas.width =
 window.innerWidth;
 
-canvas.height=
+canvas.height =
 window.innerHeight;
 
 }
@@ -472,17 +604,29 @@ resize
 
 const particles=[];
 
-for(let i=0;i<35;i++){
+for(
+let i=0;
+i<35;
+i++
+){
 
 particles.push({
 
-x:Math.random()*window.innerWidth,
-y:Math.random()*window.innerHeight,
+x:
+Math.random()
+*window.innerWidth,
 
-size:Math.random()*10+5,
+y:
+Math.random()
+*window.innerHeight,
+
+size:
+Math.random()
+*10+5,
 
 speed:
-Math.random()*0.4+0.1,
+Math.random()
+*0.4+0.1,
 
 color:
 Math.random()>.5
@@ -504,7 +648,8 @@ canvas.height
 
 particles.forEach(p=>{
 
-ctx.fillStyle=p.color;
+ctx.fillStyle =
+p.color;
 
 ctx.beginPath();
 
@@ -527,15 +672,18 @@ ctx.closePath();
 
 ctx.fill();
 
-p.y-=p.speed;
+p.y -= p.speed;
 
-if(p.y<-20){
+if(
+p.y < -20
+){
 
-p.y=
+p.y =
 canvas.height+20;
 
-p.x=
-Math.random()*canvas.width;
+p.x =
+Math.random()
+*canvas.width;
 
 }
 
@@ -548,7 +696,6 @@ animate
 }
 
 animate();
-
 </script>
 
 </body>
